@@ -103,7 +103,7 @@ jobs:
           cd "%TBUILD%\%REPO_NAME%\Telegram"
           call configure.bat x64 qt6 ^
             -D TDESKTOP_API_TEST=ON ^
-            -D CMAKE_CONFIGURATION_TYPES=Debug ^
+            -D CMAKE_CONFIGURATION_TYPES=Release ^
             -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF ^
             -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON ^
             -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
@@ -111,12 +111,12 @@ jobs:
       - name: Build Telegram
         run: |
           cd "%TBUILD%\%REPO_NAME%"
-          cmake --build out --config Debug --parallel
+          cmake --build out --config Release --parallel
 
       - name: Prepare Artifacts
         run: |
           mkdir "%GITHUB_WORKSPACE%\artifact"
-          copy "%TBUILD%\%REPO_NAME%\out\Debug\Telegram.exe" "%GITHUB_WORKSPACE%\artifact\" || copy "%TBUILD%\%REPO_NAME%\out\bin\Telegram.exe" "%GITHUB_WORKSPACE%\artifact\"
+          copy "%TBUILD%\%REPO_NAME%\out\Release\Telegram.exe" "%GITHUB_WORKSPACE%\artifact\" || copy "%TBUILD%\%REPO_NAME%\out\bin\Telegram.exe" "%GITHUB_WORKSPACE%\artifact\"
 
       - name: Upload Telegram Desktop Binary
         uses: actions/upload-artifact@v4
