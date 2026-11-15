@@ -3,7 +3,7 @@ name: Windows
 on:
   workflow_dispatch:
   push:
-    branches: [ master, main, dev ]
+    branches: [ master, main, dev, mechagram-build ]
   pull_request:
 
 jobs:
@@ -111,7 +111,7 @@ jobs:
       - name: Build Telegram
         run: |
           cd "%TBUILD%\%REPO_NAME%"
-          cmake --build out --config Release --parallel
+          cmake --build out --config Release --parallel 2 -- /bl:mechagram-build.binlog
 
       - name: Prepare Artifacts
         run: |
@@ -123,3 +123,11 @@ jobs:
         with:
           name: Telegram-Desktop-Win64
           path: artifact\Telegram.exe
+
+      - name: Upload Windows build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mechagram-windows-build-diagnostics
+          path: ${{ env.TBUILD }}/${{ env.REPO_NAME }}/out/mechagram-build.binlog
+          if-no-files-found: ignore
