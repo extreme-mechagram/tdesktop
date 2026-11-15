@@ -96,7 +96,7 @@ jobs:
       - name: Prepare Libraries
         run: |
           cd "%TBUILD%\%REPO_NAME%"
-          call Telegram\build\prepare\win.bat skip-debug silent qt6
+          call Telegram\build\prepare\win.bat silent qt6
 
       - name: Configure CMake
         run: |
@@ -123,4 +123,3 @@ jobs:
         with:
           name: Telegram-Desktop-Win64
           path: artifact\Telegram.exe
-
