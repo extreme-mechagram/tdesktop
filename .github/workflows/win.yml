@@ -120,9 +120,11 @@ jobs:
             -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
 
       - name: Build Telegram
+        env:
+          _CL_: /MP1
         run: |
           cd "%TBUILD%\%REPO_NAME%"
-          cmake --build out --config Release --parallel 2 -- /bl:mechagram-build.binlog
+          cmake --build out --config Release --parallel 1 -- /bl:mechagram-build.binlog
 
       - name: Prepare Artifacts
         run: |
