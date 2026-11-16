@@ -72,7 +72,7 @@ jobs:
 
       - name: Libraries Cache
         id: cache-libs
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ env.LibrariesPath }}\*
@@ -81,22 +81,47 @@ jobs:
             ${{ env.LibrariesPath }}\cache_keys\*
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
           key: ${{ runner.os }}-x64-release-libs-v1-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.os }}-x64-release-libs-v1-
+          restore-keys: |
+            ${{ runner.os }}-x64-libs-v2-${{ env.CACHE_KEY }}
 
       - name: Qt Cache
         id: cache-qt
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ env.LibrariesPath }}\[qQ]t[_-]*
             ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
           key: ${{ runner.os }}-x64-release-qt6-${{ env.CACHE_KEY }}
-          restore-keys: ${{ runner.os }}-x64-release-qt6-
+          restore-keys: |
+            ${{ runner.os }}-x64-qt6-${{ env.CACHE_KEY }}
 
       - name: Prepare Libraries
         run: |
           cd "%TBUILD%\%REPO_NAME%"
           call Telegram\build\prepare\win.bat silent qt6
+
+      - name: Save prepared Libraries cache
+        if: steps.cache-libs.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.os }}-x64-release-libs-v1-${{ env.CACHE_KEY }}
+
+      - name: Save prepared Qt cache
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.os }}-x64-release-qt6-${{ env.CACHE_KEY }}
 
       - name: Compress build output and dependencies
         shell: pwsh
