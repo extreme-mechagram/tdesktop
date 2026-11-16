@@ -29,6 +29,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_cloud_themes.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
+#include "info/peer_gifts/info_peer_gifts_widget.h"
 #include "info/profile/info_profile_badge.h"
 #include "info/profile/info_profile_emoji_status_panel.h"
 #include "info/profile/info_profile_phone_menu.h"
@@ -548,6 +549,13 @@ void BuildPremiumSection(SectionBuilder &builder) {
 		.keywords = { u"ton"_q, u"crypto"_q, u"wallet"_q },
 		.shown = session->credits().tonBalanceValue(
 		) | rpl::map([](CreditsAmount c) { return !c.empty(); }),
+	});
+
+	builder.addButton({
+		.id = u"main/mechagram_gifts"_q,
+		.title = tr::lng_peer_gifts_title(),
+		.onClick = [=] { controller->showSection(Info::PeerGifts::Make(session->user())); },
+		.keywords = { u"gifts"_q, u"collectibles"_q },
 	});
 
 	builder.addButton({
