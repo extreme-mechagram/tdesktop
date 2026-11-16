@@ -98,6 +98,17 @@ jobs:
           cd "%TBUILD%\%REPO_NAME%"
           call Telegram\build\prepare\win.bat silent qt6
 
+      - name: Compress build output and dependencies
+        shell: pwsh
+        run: |
+          $buildOutput = Join-Path $env:TBUILD "$env:REPO_NAME/out"
+          New-Item -ItemType Directory -Path $buildOutput -Force | Out-Null
+          foreach ($directory in @($buildOutput, $env:LibrariesPath)) {
+            compact.exe /C "/S:$directory" /I /Q
+            if ($LASTEXITCODE -ne 0) { throw "NTFS compression failed for $directory" }
+          }
+          Get-PSDrive -PSProvider FileSystem | Format-Table Name, Free, Used
+
       - name: Configure CMake
         run: |
           cd "%TBUILD%\%REPO_NAME%\Telegram"
