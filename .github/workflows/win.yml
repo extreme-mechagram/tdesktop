@@ -3,7 +3,11 @@ name: Miksigram Windows
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ miksigram-build ]
+    branches: [ mechagram-build ]
+
+permissions:
+  contents: read
+  actions: write
 
 jobs:
   windows:
@@ -20,6 +24,20 @@ jobs:
         shell: cmd
 
     steps:
+      - name: Stop unrelated builds for this Windows branch
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $runs = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs?branch=miksigram-build&per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw "Could not inspect this branch's workflow runs" }
+          foreach ($run in $runs.workflow_runs) {
+            if ($run.head_branch -eq 'miksigram-build' -and $run.name -ne 'Miksigram Windows' -and $run.status -ne 'completed') {
+              gh api --method POST "repos/$env:GITHUB_REPOSITORY/actions/runs/$($run.id)/cancel"
+              if ($LASTEXITCODE -ne 0) { Write-Warning "Run $($run.id) already finished or could not be cancelled" }
+            }
+          }
+
       - name: Prepare directories
         run: |
           mkdir "%USERPROFILE%\TBuild\Libraries"
