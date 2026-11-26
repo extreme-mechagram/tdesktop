@@ -162,6 +162,31 @@ jobs:
           name: Telegram-Desktop-Win64
           path: artifact\Telegram.exe
 
+      - name: Build Mechagram installer
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress | Out-Null
+          }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found" }
+          $repo = Join-Path $env:TBUILD $env:REPO_NAME
+          $version = ((Get-Content (Join-Path $repo 'Telegram\build\version')) -match '^AppVersionStr\s' | Select-Object -First 1) -replace '^AppVersionStr\s+', ''
+          $version = $version.Trim()
+          $exe = Join-Path $env:GITHUB_WORKSPACE 'artifact\Telegram.exe'
+          $out = Join-Path $env:GITHUB_WORKSPACE 'installer'
+          New-Item -ItemType Directory -Force $out | Out-Null
+          & $iscc "/DAppVersion=$version" "/DSourceExe=$exe" "/DOutputDir=$out" (Join-Path $repo 'Telegram\build\mechagram-setup.iss')
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed with $LASTEXITCODE" }
+          Get-ChildItem $out
+
+      - name: Upload Mechagram installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mechagram-Setup-Win64
+          path: installer\*.exe
+          if-no-files-found: error
+
       - name: Upload Windows build diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
