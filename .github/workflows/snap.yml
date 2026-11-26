@@ -40,6 +40,7 @@ jobs:
 
   snap:
     name: Ubuntu
+    if: ${{ github.ref != 'refs/heads/miksigram-build' && github.head_ref != 'miksigram-build' }}
     runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-ubuntu-latest-16' || 'ubuntu-latest' }}
 
     env:

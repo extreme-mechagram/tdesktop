@@ -1,10 +1,13 @@
-name: Windows
+name: Miksigram Windows
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ master, main, dev, mechagram-build ]
   pull_request:
+    branches: [ mechagram-build ]
+
+permissions:
+  contents: read
+  actions: write
 
 jobs:
   windows:
@@ -21,6 +24,20 @@ jobs:
         shell: cmd
 
     steps:
+      - name: Stop unrelated builds for this Windows branch
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $runs = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs?branch=miksigram-build&per_page=100" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw "Could not inspect this branch's workflow runs" }
+          foreach ($run in $runs.workflow_runs) {
+            if ($run.head_branch -eq 'miksigram-build' -and $run.name -ne 'Miksigram Windows' -and $run.status -ne 'completed') {
+              gh api --method POST "repos/$env:GITHUB_REPOSITORY/actions/runs/$($run.id)/cancel"
+              if ($LASTEXITCODE -ne 0) { Write-Warning "Run $($run.id) already finished or could not be cancelled" }
+            }
+          }
+
       - name: Prepare directories
         run: |
           mkdir "%USERPROFILE%\TBuild\Libraries"
@@ -139,8 +156,10 @@ jobs:
           cd "%TBUILD%\%REPO_NAME%\Telegram"
           call configure.bat x64 qt6 ^
             -D TDESKTOP_API_TEST=ON ^
-            -D CMAKE_CONFIGURATION_TYPES=Release ^
+            -D CMAKE_CONFIGURATION_TYPES=Debug ^
             -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF ^
+            -D CMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded ^
+            -D CMAKE_EXE_LINKER_FLAGS_DEBUG="/DEBUG:NONE /INCREMENTAL:NO" ^
             -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON ^
             -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
 
@@ -149,20 +168,20 @@ jobs:
           _CL_: /MP1
         run: |
           cd "%TBUILD%\%REPO_NAME%"
-          cmake --build out --config Release --parallel 1 -- /bl:mechagram-build.binlog
+          cmake --build out --config Debug --target Telegram --parallel 2 -- /bl:miksigram-build.binlog
 
       - name: Prepare Artifacts
         run: |
           mkdir "%GITHUB_WORKSPACE%\artifact"
-          copy "%TBUILD%\%REPO_NAME%\out\Release\Telegram.exe" "%GITHUB_WORKSPACE%\artifact\" || copy "%TBUILD%\%REPO_NAME%\out\bin\Telegram.exe" "%GITHUB_WORKSPACE%\artifact\"
+          copy "%TBUILD%\%REPO_NAME%\out\Debug\Telegram.exe" "%GITHUB_WORKSPACE%\artifact\Miksigram.exe" || copy "%TBUILD%\%REPO_NAME%\out\bin\Telegram.exe" "%GITHUB_WORKSPACE%\artifact\Miksigram.exe"
 
       - name: Upload Telegram Desktop Binary
         uses: actions/upload-artifact@v4
         with:
-          name: Telegram-Desktop-Win64
-          path: artifact\Telegram.exe
+          name: Miksigram-Desktop-Win64
+          path: artifact\Miksigram.exe
 
-      - name: Build Mechagram installer
+      - name: Build Miksigram installer
         shell: pwsh
         run: |
           $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
@@ -173,17 +192,17 @@ jobs:
           $repo = Join-Path $env:TBUILD $env:REPO_NAME
           $version = ((Get-Content (Join-Path $repo 'Telegram\build\version')) -match '^AppVersionStr\s' | Select-Object -First 1) -replace '^AppVersionStr\s+', ''
           $version = $version.Trim()
-          $exe = Join-Path $env:GITHUB_WORKSPACE 'artifact\Telegram.exe'
+          $exe = Join-Path $env:GITHUB_WORKSPACE 'artifact\Miksigram.exe'
           $out = Join-Path $env:GITHUB_WORKSPACE 'installer'
           New-Item -ItemType Directory -Force $out | Out-Null
-          & $iscc "/DAppVersion=$version" "/DSourceExe=$exe" "/DOutputDir=$out" (Join-Path $repo 'Telegram\build\mechagram-setup.iss')
+          & $iscc "/DAppVersion=$version" "/DSourceExe=$exe" "/DOutputDir=$out" (Join-Path $repo 'Telegram\build\miksigram-setup.iss')
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed with $LASTEXITCODE" }
           Get-ChildItem $out
 
-      - name: Upload Mechagram installer
+      - name: Upload Miksigram installer
         uses: actions/upload-artifact@v4
         with:
-          name: Mechagram-Setup-Win64
+          name: Miksigram-Setup-Win64
           path: installer\*.exe
           if-no-files-found: error
 
@@ -191,6 +210,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: mechagram-windows-build-diagnostics
-          path: ${{ env.TBUILD }}/${{ env.REPO_NAME }}/out/mechagram-build.binlog
+          name: miksigram-windows-build-diagnostics
+          path: ${{ env.TBUILD }}/${{ env.REPO_NAME }}/out/miksigram-build.binlog
           if-no-files-found: ignore
