@@ -22,6 +22,10 @@ function(generate_appstream_changelog target_name changelog_path metadata_path)
         -c "${changelog_path}"
         -m "${metadata_path}"
         -n 10
+        # Mechagram: the Rocky Linux 8 image ships a python3.12 whose pyexpat
+        # cannot load there; the changelog is optional package metadata, so a
+        # failure must not stop the build.
+        || ${CMAKE_COMMAND} -E echo "AppStream changelog skipped"
     COMMAND
         echo 1> ${gen_timestamp}
     COMMENT "Generating AppStream changelog (${target_name})"
